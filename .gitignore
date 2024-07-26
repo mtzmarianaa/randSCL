@@ -28,6 +28,7 @@ GTAGS
 *.pdf
 *.t
 *.scale
+*.csv
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
