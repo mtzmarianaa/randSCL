@@ -6,6 +6,7 @@ from numpy.random import seed, random, choice
 from math import sqrt
 import pdb
 import scipy
+from numpy.linalg import svd
 
 def hrht(Ai: np.array,l: int, r:int, s: int, seedLocal: int = 166297, seedGlobal: int = 1263):
     '''
@@ -60,7 +61,30 @@ def blockHRHT_serial(A: np.array, l: int, s: int, p: int, seedGlobal: int = 1263
     return (1/sqrt(p))*B, tF, tL
 
 
-
+def rand_nystrom_svd(A, rank, Omega = None, l = None, s = None, p = None, seedGlobal = 1263):
+    """
+    Compute the randomized Nyström rank k approximation given the sketching
+    matrix Omega (uses SVD instead of Cholesky). The method relies on the
+    Nyström approximation which incorporates the 'Q' factor of QR decomposition.
+    """
+    if (Omega is None):
+        assert( l is not None and s is not None and p is not None )
+        C = blockHRHT_serial(A.T, l = l, s = s, p = p, seedGlobal = seedGlobal)
+        B = blockHRHT_serial(C.T, l = l, s = s, p = p, seedGlobal = seedGlobal)
+        B = B.T
+    else:
+        C = A @ Omega
+        B = Omega.T @ C
+    Ub, Sb, Vb = svd(B)
+    L = Ub@np.diag(np.sqrt(Sb))@Vb
+    Z = np.linalg.solve(L, C.T).T
+    Q, R = np.linalg.qr(Z)
+    if min(R.shape) == rank:
+        U_t, Sigma, _ = svd(R)
+    else:
+        U_t, Sigma, _ = scipy.sparse.linalg.svds(R, k=rank)
+    U = Q @ U_t
+    return U, np.diag(Sigma**2)
 
 
 

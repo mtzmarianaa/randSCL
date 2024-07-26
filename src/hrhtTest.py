@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.linalg import norm
 from math import sqrt
-import pdb
 from numpy.linalg import svd, cond
 from scipy.linalg import hadamard as sp_hadamard
 import matplotlib.pyplot as plt
 from math import ceil, log
+import pandas as pd
+from pathlib import Path
 
 plt.ion()
 
@@ -176,4 +177,67 @@ def createTestMatrices(m, n, type = 1, param = 0.2):
         d = [1.0 for _ in range(n)] + [(10.0) ** (-(o + 1)) for o in range(n)]
         V = np.zeros((m, n))
         np.fill_diagonal(V, d)
+    elif type == 7:
+        # MNIST DATA SET
+        matrixFile = Path("./data/A.csv")
+        dataFile = Path("./data/denseDataMNIST.csv")
+        if matrixFile.is_file():
+            print("Matrix pre saved, just reading it")
+            V = np.genfromtxt("sample_data.csv", delimiter=",", dtype=float)
+        elif dataFile.is_file():
+            print("Data formated, building matrix")
+            labels = np.genfromtxt('./data/labelsMNIST.csv', delimiter=",", dtype=float)
+            V = build_A(filename = "./data/denseDataMNIST.csv", labels = labels, save = True)
+        else:
+            print("Data unprocessed, formatting and building")
+            V, _ = build_A(filename = "./data/mnist.scale", save = True)
     return V
+
+
+def read_data(filename, size=784, save=False):
+    '''
+    Read MNIST sparse data from filename and transforms this into a dense
+    matrix, each line representing an entry of the database (i.e. a "flattened"
+    image)
+    '''
+    dataR = pd.read_csv(filename, sep=',', header=None)
+    n = len(dataR)
+    data = np.zeros((n, size))
+    labels = np.zeros((n, 1))
+    # Format accordingly
+    for i in range(n):
+        l = dataR.iloc[i, 0]
+        # We know that the first digit is the label
+        labels[i] = int(l[0])
+        l = l[2:]
+        indices_values = [tuple(map(float, pair.split(':')))
+                          for pair in l.split()]
+        # Separate indices and values
+        indices, values = zip(*indices_values)
+        indices = [int(i) for i in indices]
+        # Fill in the values at the specified indices
+        data[i, indices] = values
+    if save:
+        data.tofile('./data/denseDataMNIST.csv', sep=',', format='%10.f')
+        labels.tofile('./data/labelsMNIST.csv', sep=',', format='%10.f')
+    return data, labels
+
+def build_A(filename = None, data = None, labels = None, c=10**4, save=False):
+    '''
+    Function to build A out of a data base using the RBF exp( -|| x i - x j || /
+    c). The function solely based on NumPy broadcasting and is therefore
+    superior to methods involving Python loops.
+    '''
+    assert( filename is not None or data is not None)
+    if(data is None and labels is None):
+        data, labels = read_data(filename = filename, save = True)
+    elif(labels is not None):
+        data = np.genfromtxt(filename, delimiter=",", dtype=float)
+    data_norm = np.sum(data ** 2, axis=-1)
+    A = np.exp(-(1/c) * (data_norm[:, None] +
+               data_norm[None, :] - 2 * np.dot(data, data.T)))
+    if save:
+        A.tofile('./data/A.csv', sep=',', format='%10.f')
+    return A, labels
+
+
