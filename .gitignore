@@ -9,6 +9,25 @@
 *.user
 *.userosscache
 *.sln.docstates
+GPATH
+GRTAGS
+GTAGS
+*~
+*.pyc
+*.o
+*.bin
+*.txt
+*.json
+*.icloud
+*.pyc
+*.DS_Store
+*.png
+*.gif
+*.mp4
+*.bib
+*.pdf
+*.t
+*.scale
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
